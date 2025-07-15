@@ -1,1 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Engineering College Results Portal</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for better aesthetics and responsiveness */
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: #f0f4f8; /* Light blue-gray background */
+        }
+        .container {
+            max-width: 960px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e2e8f0;
+        }
+        .header {
+            color: #1e3a8a; /* Dark blue */
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 2.5rem; /* Larger font for heading */
+        }
+        .input-field {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid #cbd5e0; /* Light gray border */
+            border-radius: 8px;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: #3b82f6; /* Blue focus border */
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        }
+        .btn-primary {
+            background-color: #2563eb; /* Blue */
+            color: #ffffff;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background-color 0.2s, transform 0.2s;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .btn-primary:hover {
+            background-color: #1d4ed8; /* Darker blue on hover */
+            transform: translateY(-1px);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+        .btn-secondary {
+            background-color: #6b7280; /* Gray */
+            color: #ffffff;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background-color 0.2s, transform 0.2s;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .btn-secondary:hover {
+            background-color: #4b5563; /* Darker gray on hover */
+            transform: translateY(-1px);
+        }
+        .btn-secondary:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+        .table-header {
+            background-color: #3b82f6; /* Medium blue */
+            color: #ffffff;
+        }
+        .table-row:nth-child(even) {
+            background-color: #f8fafc; /* Lighter background for even rows */
+        }
+        .table-row:hover {
+            background-color: #e0f2fe; /* Lightest blue on hover */
+        }
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1000; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen p-4 sm:p-6">
 
+    <div class="container">
+        <h1 class="header">Engineering College Results Portal</h1>
+
+        <!-- User ID Display (for Canvas environment context) -->
+        <div class="mb-4 p-3 bg-blue-100 border border-blue-300 rounded-lg text-blue-800 text-sm font-medium">
+            Your User ID: <span id="userIdDisplay" class="font-bold break-all">Loading...</span>
+        </div>
+
+        <!-- Login Section -->
+        <div id="loginSection" class="mb-8 p-6 bg-gray-50 border border-gray-200 rounded-lg shadow-inner">
+            <h2 class="text-2xl font-bold text-gray-700 mb-4">Admin Login</h2>
+            <p class="text-sm text-red-600 mb-4">
+                <strong class="font-bold">NOTE:</strong> This login now uses **Firebase Email/Password Authentication**.
+                <br>You **must** enable Email/Password sign-in in your Firebase Console and create admin users there.
+            </p>
+            <form id="loginForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="usernameInput" class="block text-sm font-medium text-gray-700 mb-1">Email:</label>
+                    <input type="email" id="usernameInput" class="input-field" placeholder="admin@example.com" required>
+                </div>
+                <div>
+                    <label for="passwordInput" class="block text-sm font-medium text-gray-700 mb-1">Password:</label>
+                    <input type="password" id="passwordInput" class="input-field" required>
+                </div>
+                <div class="md:col-span-2 flex justify-end gap-2">
+                    <button type="submit" class="btn-primary">Login as Admin</button>
+                    <button type="button" id="viewAsStudentBtn" class="btn-secondary">View as Student</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Admin Section (Hidden by default) -->
+        <div id="adminSection" class="hidden">
+            <div class="flex justify-end mb-4">
+                <button type="button" id="logoutBtn" class="btn-secondary">Logout</button>
+            </div>
+            <div class="mb-8 p-6 bg-blue-50 border border-blue-200 rounded-lg shadow-inner">
+                <h2 class="text-2xl font-bold text-blue-700 mb-4">Upload Results (Admin Only)</h2>
+                <p class="text-sm text-gray-600 mb-4">
+                    Upload Excel (.xlsx, .xls) or PDF (.pdf) files containing student results.
+                    <br><strong class="font-bold">Note:</strong> PDF parsing is basic (text extraction only). For structured data from PDF, manual review or advanced backend processing is needed.
+                </p>
+                <form id="fileUploadForm">
+                    <div class="mb-4">
+                        <label for="fileInput" class="block text-sm font-medium text-gray-700 mb-1">Select File (Excel or PDF):</label>
+                        <input type="file" id="fileInput" class="input-field p-2" accept=".xlsx,.xls,.pdf" required>
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="submit" class="btn-primary">Upload to Database</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Search and Filter Section (Visible to both roles) -->
+        <div class="mb-6 p-6 bg-blue-50 border border-blue-200 rounded-lg shadow-inner">
+            <h2 class="text-2xl font-bold text-blue-700 mb-4">Search Results</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label for="searchId" class="block text-sm font-medium text-gray-700 mb-1">Search Student ID:</label>
+                    <input type="text" id="searchId" class="input-field" placeholder="e.g., S001">
+                </div>
+                <div>
+                    <label for="searchYear" class="block text-sm font-medium text-gray-700 mb-1">Filter Academic Year:</label>
+                    <input type="number" id="searchYear" class="input-field" placeholder="e.g., 2024">
+                </div>
+                <div>
+                    <label for="searchExamType" class="block text-sm font-medium text-gray-700 mb-1">Filter Exam Type:</label>
+                    <select id="searchExamType" class="input-field">
+                        <option value="">All</option>
+                        <option value="Regular">Regular</option>
+                        <option value="Supply">Supply</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Display Section -->
+        <div class="mt-8">
+            <h2 class="text-2xl font-bold text-blue-700 mb-4">Student Results List</h2>
+            <div id="loadingMessage" class="text-center text-blue-600 text-xl font-semibold py-10" style="display: none;">
+                Loading student data...
+            </div>
+            <div id="errorMessage" class="text-center text-red-600 text-xl font-semibold py-10" style="display: none;">
+                Error: Failed to load student data.
+            </div>
+            <div id="noResultsMessage" class="text-center text-gray-600 text-xl py-10" style="display: none;">
+                No results found matching your criteria.
+            </div>
+
+            <div class="overflow-x-auto rounded-lg shadow-md border border-blue-200">
+                <table class="min-w-full bg-white divide-y divide-blue-200">
+                    <thead class="table-header">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-sm font-medium uppercase tracking-wider rounded-tl-lg">Student ID</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium uppercase tracking-wider">Name</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium uppercase tracking-wider">Academic Year</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium uppercase tracking-wider">Semester</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium uppercase tracking-wider">Exam Type</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium uppercase tracking-wider rounded-tr-lg">Results</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsTableBody" class="divide-y divide-blue-100">
+                        <!-- Results will be dynamically inserted here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Modal for Messages -->
+    <div id="customModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <p id="modalMessage" class="text-lg text-gray-800"></p>
+            <div class="mt-4 text-right">
+                <button class="btn-primary" onclick="document.getElementById('customModal').style.display='none'">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        // Ensure ALL JavaScript, including imports, is within this SINGLE script block.
+        // Do NOT have any other <script type="module"> tags in this HTML file.
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        // Added signInWithEmailAndPassword and signOut for Firebase Auth login/logout
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // --- Firebase Configuration for Local Development ---
+        // IMPORTANT: You MUST replace these placeholder values with your actual Firebase project configuration
+        // from the Firebase Console.
+        // Go to Firebase Console -> Project settings (gear icon) -> "Your apps" card -> Select your web app -> "Config"
+      // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyDC5M6g8mUAdkKuyBVO3cVgucv9GF1kq9c",
+  authDomain: "jvskresults.firebaseapp.com",
+  projectId: "jvskresults",
+  storageBucket: "jvskresults.firebasestorage.app",
+  messagingSenderId: "533461952182",
+  appId: "1:533461952182:web:c6c5bc2f67296b156be817",
+  measurementId: "G-T7NHE3L3CQ"
+};
+
+        // These variables are derived from firebaseConfig for use in the app
+        const appId = firebaseConfig.projectId; // Using projectId as the app ID for Firestore paths
+        // __initial_auth_token is provided by the Canvas environment.
+        // If running locally, it will be undefined, so we default to null.
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+
+        let app;
+        let db;
+        let auth;
+        let userId = 'anonymous'; // Default to anonymous
+        let userRole = 'student'; // Default role
+
+        // DOM elements
+        const userIdDisplay = document.getElementById('userIdDisplay');
+        const loginSection = document.getElementById('loginSection');
+        const loginForm = document.getElementById('loginForm');
+        // Renamed for conceptual clarity, but ID remains 'usernameInput' in HTML
+        const emailInput = document.getElementById('usernameInput');
+        const passwordInput = document.getElementById('passwordInput');
+        const viewAsStudentBtn = document.getElementById('viewAsStudentBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+
+        const adminSection = document.getElementById('adminSection');
+        const fileUploadForm = document.getElementById('fileUploadForm');
+        const fileInput = document.getElementById('fileInput');
+
+        const resultsTableBody = document.getElementById('resultsTableBody');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const errorMessage = document.getElementById('errorMessage');
+        const noResultsMessage = document.getElementById('noResultsMessage');
+
+        const searchIdInput = document.getElementById('searchId');
+        const searchExamTypeInput = document.getElementById('searchExamType');
+        const searchYearInput = document.getElementById('searchYear');
+
+        const customModal = document.getElementById('customModal');
+        const modalMessage = document.getElementById('modalMessage');
+        const closeModalButton = document.querySelector('.close-button');
+
+        // Admin credentials (hardcoded for demonstration - REMOVE FOR PRODUCTION)
+        // These are no longer used in the loginForm.addEventListener but kept for reference
+        const ADMIN_USERNAME = "admin"; // This value is now just a placeholder for the input field
+        const ADMIN_PASSWORD = "password123"; // This value is now just a placeholder for the input field
+
+        // Function to show custom modal messages
+        function showModal(message) {
+            modalMessage.textContent = message;
+            customModal.style.display = 'flex'; // Use flex to center
+        }
+
+        closeModalButton.onclick = function() {
+            customModal.style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            if (event.target == customModal) {
+                customModal.style.display = 'none';
+            }
+        }
+
+        // Function to update UI based on user role
+        function updateUIForRole() {
+            if (userRole === 'admin') {
+                loginSection.classList.add('hidden');
+                adminSection.classList.remove('hidden');
+            } else { // student role
+                loginSection.classList.remove('hidden');
+                adminSection.classList.add('hidden');
+            }
+            setupRealtimeListener(); // Re-fetch data based on current filters
+        }
+
+        // Initialize Firebase
+        async function initializeFirebase() {
+            try {
+                // Check if firebaseConfig is properly filled out (not just empty placeholders)
+                if (Object.keys(firebaseConfig).length === 0 || !firebaseConfig.projectId || firebaseConfig.apiKey.includes("PASTE_YOUR_ACTUAL")) {
+                    console.error("Firebase config is empty or invalid. Cannot initialize Firebase.");
+                    errorMessage.style.display = 'block';
+                    loadingMessage.style.display = 'none';
+                    showModal("Firebase configuration missing or invalid. Please update 'firebaseConfig' in your index.html script with your actual project details from the Firebase Console.");
+                    return; // Stop execution if config is bad
+                }
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Authenticate user
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth); // This requires Anonymous Auth to be enabled in Firebase Console
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        userIdDisplay.textContent = userId;
+                        console.log("Authenticated with Firebase. User ID:", userId);
+                        // For this demo, any authenticated user is treated as admin for UI display purposes
+                        // In a real app, you'd check custom claims or a user role in Firestore
+                        userRole = 'admin'; // Assume admin for now if logged in
+                        updateUIForRole();
+                    } else {
+                        userId = crypto.randomUUID(); // Fallback for unauthenticated/anonymous
+                        userIdDisplay.textContent = userId + " (Anonymous)";
+                        console.log("Signed out or anonymous. User ID:", userId);
+                        userRole = 'student'; // Default to student if not authenticated
+                        updateUIForRole();
+                    }
+                });
+
+            } catch (error) {
+                console.error("Error initializing Firebase or authenticating:", error);
+                errorMessage.style.display = 'block';
+                loadingMessage.style.display = 'none';
+                showModal("Failed to initialize the application. Error: " + error.message + ". Please check console for details and ensure Firebase Authentication is enabled (especially Anonymous).");
+            }
+        }
+
+        // Function to set up real-time listener for student results
+        function setupRealtimeListener() {
+            loadingMessage.style.display = 'block';
+            errorMessage.style.display = 'none';
+            noResultsMessage.style.display = 'none';
+            resultsTableBody.innerHTML = ''; // Clear previous results
+
+            // Collection path for public data
+            const resultsCollectionRef = collection(db, `artifacts/${appId}/public/data/studentResults`);
+
+            // onSnapshot listens for real-time updates
+            onSnapshot(resultsCollectionRef, (snapshot) => {
+                currentResultsCache = []; // Clear cache
+                snapshot.forEach((doc) => {
+                    currentResultsCache.push({ id: doc.id, ...doc.data() });
+                });
+                displayResults(currentResultsCache); // Display from cache
+                loadingMessage.style.display = 'none';
+            }, (error) => {
+                console.error("Error fetching real-time results:", error);
+                errorMessage.style.display = 'block';
+                loadingMessage.style.display = 'none';
+                showModal("Failed to fetch real-time data. Please try refreshing.");
+            });
+        }
+
+        // Function to display results in the table based on filters and role
+        function displayResults(results) {
+            resultsTableBody.innerHTML = ''; // Clear current table
+            const currentSearchId = searchIdInput.value.toLowerCase();
+            const currentSearchExamType = searchExamTypeInput.value;
+            const currentSearchYear = searchYearInput.value;
+
+            const filtered = results.filter(result => {
+                const matchesId = currentSearchId === '' || (result.studentId && String(result.studentId).toLowerCase().includes(currentSearchId));
+                const matchesExamType = currentSearchExamType === '' || (result.examType && result.examType === currentSearchExamType);
+                const matchesYear = currentSearchYear === '' || (result.academicYear && String(result.academicYear) === currentSearchYear);
+                return matchesId && matchesExamType && matchesYear;
+            });
+
+            if (filtered.length === 0) {
+                noResultsMessage.style.display = 'block';
+            } else {
+                noResultsMessage.style.display = 'none';
+                // Sort results by studentId for consistent display
+                filtered.sort((a, b) => (String(a.studentId) || '').localeCompare(String(b.studentId) || ''));
+
+                filtered.forEach(result => {
+                    const row = document.createElement('tr');
+                    row.className = 'table-row';
+                    row.innerHTML = `
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${result.studentId || 'N/A'}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800">${result.name || 'N/A'}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800">${result.academicYear || 'N/A'}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800">${result.semester || 'N/A'}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800">${result.examType || 'N/A'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-800">
+                            <ul class="list-disc pl-5 space-y-1">
+                                ${Array.isArray(result.results) ? result.results.map((subResult, idx) => `
+                                    <li key=${idx}><span class="font-semibold">${subResult.subject || 'N/A'}:</span> ${subResult.marks !== undefined ? subResult.marks : 'N/A'} (${subResult.grade || 'N/A'})</li>
+                                `).join('') : 'N/A'}
+                            </ul>
+                        </td>
+                    `;
+                    resultsTableBody.appendChild(row);
+                });
+            }
+        }
+
+        // Login Form Submission - NOW USES FIREBASE AUTH
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = emailInput.value; // Get email from the input field
+            const password = passwordInput.value; // Get password from the input field
+
+            try {
+                // Attempt to sign in with email and password using Firebase Auth
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user; // The authenticated user object
+
+                // For this demonstration, we'll assume any successfully authenticated user is an admin
+                // In a real application, you would check Firebase Custom Claims or a user role stored in Firestore
+                userRole = 'admin';
+                showModal("Logged in as Administrator!");
+                updateUIForRole(); // Update UI to show admin section
+
+            } catch (error) {
+                console.error("Firebase Login Error:", error);
+                let errorMessage = "Login failed. Please check your credentials.";
+
+                // Provide more specific error messages based on Firebase Auth error codes
+                switch (error.code) {
+                    case 'auth/user-not-found':
+                    case 'auth/wrong-password':
+                        errorMessage = "Invalid email or password.";
+                        break;
+                    case 'auth/invalid-email':
+                        errorMessage = "Invalid email format.";
+                        break;
+                    case 'auth/too-many-requests':
+                        errorMessage = "Too many login attempts. Please try again later.";
+                        break;
+                    case 'auth/network-request-failed':
+                        errorMessage = "Network error. Please check your internet connection.";
+                        break;
+                    default:
+                        errorMessage = `Login failed: ${error.message}`;
+                        break;
+                }
+                showModal(errorMessage);
+            }
+        });
+
+        // View as Student Button - remains the same
+        viewAsStudentBtn.addEventListener('click', () => {
+            userRole = 'student';
+            showModal("Viewing as Student.");
+            updateUIForRole();
+        });
+
+        // Logout Button - NOW USES FIREBASE AUTH signOut
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await signOut(auth); // Sign out the current user from Firebase Auth
+                userRole = 'student'; // Revert to student role on logout
+                showModal("Logged out. Viewing as Student.");
+                updateUIForRole();
+                emailInput.value = ''; // Clear login form
+                passwordInput.value = '';
+            } catch (error) {
+                console.error("Firebase Logout Error:", error);
+                showModal("Error during logout: " + error.message);
+            }
+        });
+
+        // --- File Upload Form Submission (Admin Only) ---
+        fileUploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const file = fileInput.files[0];
+            if (!file) {
+                showModal("Please select a file to upload.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file); // Append the selected file to FormData
+
+            // IMPORTANT: Replace with the actual URL of your Flask backend's upload endpoint
+            const backendUrl = 'http://127.0.0.1:5000/upload-results'; // Default Flask URL
+
+            try {
+                showModal("Uploading file... Please wait.");
+                const response = await fetch(backendUrl, {
+                    method: 'POST',
+                    body: formData // Send the FormData object
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showModal(result.message);
+                    fileInput.value = ''; // Clear the file input
+                } else {
+                    showModal(`Upload failed: ${result.error || 'Unknown error'}`);
+                    console.error("Backend error:", result);
+                }
+            } catch (error) {
+                console.error("Network or fetch error:", error);
+                showModal("Failed to connect to the backend server. Make sure it's running at " + backendUrl);
+            }
+        });
+
+        let currentResultsCache = []; // Cache for results fetched by onSnapshot
+
+        // Event listeners for search/filter inputs
+        searchIdInput.addEventListener('input', () => displayResults(currentResultsCache)); // Use cached results
+        searchExamTypeInput.addEventListener('change', () => displayResults(currentResultsCache));
+        searchYearInput.addEventListener('input', () => displayResults(currentResultsCache));
+
+        // Initialize Firebase when the window loads
+        window.onload = initializeFirebase;
+
+    </script>
+</body>
+</html>
