@@ -138,15 +138,15 @@
 
         <!-- Login Section -->
         <div id="loginSection" class="mb-8 p-6 bg-gray-50 border border-gray-200 rounded-lg shadow-inner">
-            <h2 class="text-2xl font-bold text-gray-700 mb-4">Admin Login</h2>
+            <h2 class="text-2xl font-bold text-gray-700 mb-4">Admin Login (Firebase Email/Password)</h2>
             <p class="text-sm text-red-600 mb-4">
                 <strong class="font-bold">NOTE:</strong> This login now uses **Firebase Email/Password Authentication**.
                 <br>You **must** enable Email/Password sign-in in your Firebase Console and create admin users there.
             </p>
             <form id="loginForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label for="usernameInput" class="block text-sm font-medium text-gray-700 mb-1">Email:</label>
-                    <input type="email" id="usernameInput" class="input-field" placeholder="admin@example.com" required>
+                    <label for="emailInput" class="block text-sm font-medium text-gray-700 mb-1">Email:</label>
+                    <input type="email" id="emailInput" class="input-field" placeholder="admin@example.com" required>
                 </div>
                 <div>
                     <label for="passwordInput" class="block text-sm font-medium text-gray-700 mb-1">Password:</label>
@@ -185,22 +185,29 @@
         <!-- Search and Filter Section (Visible to both roles) -->
         <div class="mb-6 p-6 bg-blue-50 border border-blue-200 rounded-lg shadow-inner">
             <h2 class="text-2xl font-bold text-blue-700 mb-4">Search Results</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                 <div>
-                    <label for="searchId" class="block text-sm font-medium text-gray-700 mb-1">Search Student ID:</label>
+                    <label for="searchId" class="block text-sm font-medium text-gray-700 mb-1">Student ID:</label>
                     <input type="text" id="searchId" class="input-field" placeholder="e.g., S001">
                 </div>
                 <div>
-                    <label for="searchYear" class="block text-sm font-medium text-gray-700 mb-1">Filter Academic Year:</label>
+                    <label for="searchName" class="block text-sm font-medium text-gray-700 mb-1">Student Name:</label>
+                    <input type="text" id="searchName" class="input-field" placeholder="e.g., Alice">
+                </div>
+                <div>
+                    <label for="searchYear" class="block text-sm font-medium text-gray-700 mb-1">Academic Year:</label>
                     <input type="number" id="searchYear" class="input-field" placeholder="e.g., 2024">
                 </div>
                 <div>
-                    <label for="searchExamType" class="block text-sm font-medium text-gray-700 mb-1">Filter Exam Type:</label>
+                    <label for="searchExamType" class="block text-sm font-medium text-gray-700 mb-1">Exam Type:</label>
                     <select id="searchExamType" class="input-field">
                         <option value="">All</option>
                         <option value="Regular">Regular</option>
                         <option value="Supply">Supply</option>
                     </select>
+                </div>
+                <div class="md:col-span-4 flex justify-end">
+                    <button type="button" id="showResultsBtn" class="btn-primary">Show Results</button>
                 </div>
             </div>
         </div>
@@ -254,15 +261,15 @@
         // Ensure ALL JavaScript, including imports, is within this SINGLE script block.
         // Do NOT have any other <script type="module"> tags in this HTML file.
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        // Added signInWithEmailAndPassword and signOut for Firebase Auth login/logout
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        // Adjusted imports for Email/Password Auth
+        import { getAuth, onAuthStateChanged, signInWithCustomToken, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         // --- Firebase Configuration for Local Development ---
         // IMPORTANT: You MUST replace these placeholder values with your actual Firebase project configuration
         // from the Firebase Console.
         // Go to Firebase Console -> Project settings (gear icon) -> "Your apps" card -> Select your web app -> "Config"
-      // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyDC5M6g8mUAdkKuyBVO3cVgucv9GF1kq9c",
   authDomain: "jvskresults.firebaseapp.com",
@@ -272,7 +279,6 @@ const firebaseConfig = {
   appId: "1:533461952182:web:c6c5bc2f67296b156be817",
   measurementId: "G-T7NHE3L3CQ"
 };
-
         // These variables are derived from firebaseConfig for use in the app
         const appId = firebaseConfig.projectId; // Using projectId as the app ID for Firestore paths
         // __initial_auth_token is provided by the Canvas environment.
@@ -284,14 +290,14 @@ const firebaseConfig = {
         let db;
         let auth;
         let userId = 'anonymous'; // Default to anonymous
-        let userRole = 'student'; // Default role
+        let userRole = 'student'; // Default role, will only change to 'admin' on successful login
 
         // DOM elements
         const userIdDisplay = document.getElementById('userIdDisplay');
         const loginSection = document.getElementById('loginSection');
         const loginForm = document.getElementById('loginForm');
         // Renamed for conceptual clarity, but ID remains 'usernameInput' in HTML
-        const emailInput = document.getElementById('usernameInput');
+        const emailInput = document.getElementById('emailInput'); // Changed ID to emailInput
         const passwordInput = document.getElementById('passwordInput');
         const viewAsStudentBtn = document.getElementById('viewAsStudentBtn');
         const logoutBtn = document.getElementById('logoutBtn');
@@ -306,17 +312,14 @@ const firebaseConfig = {
         const noResultsMessage = document.getElementById('noResultsMessage');
 
         const searchIdInput = document.getElementById('searchId');
+        const searchNameInput = document.getElementById('searchName'); // New input for student name
         const searchExamTypeInput = document.getElementById('searchExamType');
         const searchYearInput = document.getElementById('searchYear');
+        const showResultsBtn = document.getElementById('showResultsBtn'); // New button to trigger search
 
         const customModal = document.getElementById('customModal');
         const modalMessage = document.getElementById('modalMessage');
         const closeModalButton = document.querySelector('.close-button');
-
-        // Admin credentials (hardcoded for demonstration - REMOVE FOR PRODUCTION)
-        // These are no longer used in the loginForm.addEventListener but kept for reference
-        const ADMIN_USERNAME = "admin"; // This value is now just a placeholder for the input field
-        const ADMIN_PASSWORD = "password123"; // This value is now just a placeholder for the input field
 
         // Function to show custom modal messages
         function showModal(message) {
@@ -343,7 +346,8 @@ const firebaseConfig = {
                 loginSection.classList.remove('hidden');
                 adminSection.classList.add('hidden');
             }
-            setupRealtimeListener(); // Re-fetch data based on current filters
+            // Initial load of data, but won't display until 'Show Results' is clicked
+            setupRealtimeListener();
         }
 
         // Initialize Firebase
@@ -361,40 +365,41 @@ const firebaseConfig = {
                 db = getFirestore(app);
                 auth = getAuth(app);
 
-                // Authenticate user
+                // No automatic signInAnonymously here. Authentication will be explicit.
                 if (initialAuthToken) {
+                    // This path is for Canvas environment's auto-auth, not typical local setup
                     await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth); // This requires Anonymous Auth to be enabled in Firebase Console
                 }
 
+                // onAuthStateChanged will update userIdDisplay based on any Firebase auth state
                 onAuthStateChanged(auth, (user) => {
                     if (user) {
                         userId = user.uid;
                         userIdDisplay.textContent = userId;
-                        console.log("Authenticated with Firebase. User ID:", userId);
-                        // For this demo, any authenticated user is treated as admin for UI display purposes
-                        // In a real app, you'd check custom claims or a user role in Firestore
-                        userRole = 'admin'; // Assume admin for now if logged in
-                        updateUIForRole();
+                        console.log("Firebase Auth State: User ID:", userId);
+                        // If a user is authenticated, set role to admin
+                        userRole = 'admin';
                     } else {
-                        userId = crypto.randomUUID(); // Fallback for unauthenticated/anonymous
-                        userIdDisplay.textContent = userId + " (Anonymous)";
-                        console.log("Signed out or anonymous. User ID:", userId);
-                        userRole = 'student'; // Default to student if not authenticated
-                        updateUIForRole();
+                        // If no Firebase user is authenticated, generate a random UUID for display
+                        userId = crypto.randomUUID();
+                        userIdDisplay.textContent = userId + " (Anonymous/Local)";
+                        console.log("Firebase Auth State: No user. Using anonymous ID:", userId);
+                        // If no Firebase user, default to student role
+                        userRole = 'student';
                     }
+                    updateUIForRole(); // Ensure UI updates based on current userRole
                 });
 
             } catch (error) {
                 console.error("Error initializing Firebase or authenticating:", error);
                 errorMessage.style.display = 'block';
                 loadingMessage.style.display = 'none';
-                showModal("Failed to initialize the application. Error: " + error.message + ". Please check console for details and ensure Firebase Authentication is enabled (especially Anonymous).");
+                showModal("Failed to initialize the application. Error: " + error.message + ". Please check console for details and ensure Firebase Authentication is enabled (especially Email/Password).");
             }
         }
 
         // Function to set up real-time listener for student results
+        // This function now only fetches data into cache, display is triggered by button
         function setupRealtimeListener() {
             loadingMessage.style.display = 'block';
             errorMessage.style.display = 'none';
@@ -410,7 +415,7 @@ const firebaseConfig = {
                 snapshot.forEach((doc) => {
                     currentResultsCache.push({ id: doc.id, ...doc.data() });
                 });
-                displayResults(currentResultsCache); // Display from cache
+                // Do NOT call displayResults here. It will be called by showResultsBtn.
                 loadingMessage.style.display = 'none';
             }, (error) => {
                 console.error("Error fetching real-time results:", error);
@@ -423,25 +428,39 @@ const firebaseConfig = {
         // Function to display results in the table based on filters and role
         function displayResults(results) {
             resultsTableBody.innerHTML = ''; // Clear current table
-            const currentSearchId = searchIdInput.value.toLowerCase();
+            const currentSearchId = searchIdInput.value.trim().toLowerCase();
+            const currentSearchName = searchNameInput.value.trim().toLowerCase(); // Get student name
             const currentSearchExamType = searchExamTypeInput.value;
             const currentSearchYear = searchYearInput.value;
 
-            const filtered = results.filter(result => {
-                const matchesId = currentSearchId === '' || (result.studentId && String(result.studentId).toLowerCase().includes(currentSearchId));
-                const matchesExamType = currentSearchExamType === '' || (result.examType && result.examType === currentSearchExamType);
-                const matchesYear = currentSearchYear === '' || (result.academicYear && String(result.academicYear) === currentSearchYear);
-                return matchesId && matchesExamType && matchesYear;
-            });
+            let filteredResults = [];
 
-            if (filtered.length === 0) {
+            if (currentSearchId !== '') {
+                // If Student ID is entered, find an exact match
+                const foundStudent = results.find(result => 
+                    result.studentId && String(result.studentId).toLowerCase() === currentSearchId
+                );
+                if (foundStudent) {
+                    filteredResults.push(foundStudent);
+                }
+            } else {
+                // If no Student ID, apply other filters including name
+                filteredResults = results.filter(result => {
+                    const matchesName = currentSearchName === '' || (result.name && String(result.name).toLowerCase().includes(currentSearchName));
+                    const matchesExamType = currentSearchExamType === '' || (result.examType && result.examType === currentSearchExamType);
+                    const matchesYear = currentSearchYear === '' || (result.academicYear && String(result.academicYear) === currentSearchYear);
+                    return matchesName && matchesExamType && matchesYear;
+                });
+            }
+
+            if (filteredResults.length === 0) {
                 noResultsMessage.style.display = 'block';
             } else {
                 noResultsMessage.style.display = 'none';
                 // Sort results by studentId for consistent display
-                filtered.sort((a, b) => (String(a.studentId) || '').localeCompare(String(b.studentId) || ''));
+                filteredResults.sort((a, b) => (String(a.studentId) || '').localeCompare(String(b.studentId) || ''));
 
-                filtered.forEach(result => {
+                filteredResults.forEach(result => {
                     const row = document.createElement('tr');
                     row.className = 'table-row';
                     row.innerHTML = `
@@ -463,28 +482,19 @@ const firebaseConfig = {
             }
         }
 
-        // Login Form Submission - NOW USES FIREBASE AUTH
+        // Login Form Submission - USES FIREBASE EMAIL/PASSWORD AUTH
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = emailInput.value; // Get email from the input field
-            const password = passwordInput.value; // Get password from the input field
+            const email = emailInput.value;
+            const password = passwordInput.value;
 
             try {
-                // Attempt to sign in with email and password using Firebase Auth
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user; // The authenticated user object
-
-                // For this demonstration, we'll assume any successfully authenticated user is an admin
-                // In a real application, you would check Firebase Custom Claims or a user role stored in Firestore
-                userRole = 'admin';
+                await signInWithEmailAndPassword(auth, email, password);
+                // onAuthStateChanged listener will handle setting userRole to 'admin'
                 showModal("Logged in as Administrator!");
-                updateUIForRole(); // Update UI to show admin section
-
             } catch (error) {
                 console.error("Firebase Login Error:", error);
                 let errorMessage = "Login failed. Please check your credentials.";
-
-                // Provide more specific error messages based on Firebase Auth error codes
                 switch (error.code) {
                     case 'auth/user-not-found':
                     case 'auth/wrong-password':
@@ -507,72 +517,39 @@ const firebaseConfig = {
             }
         });
 
-        // View as Student Button - remains the same
-        viewAsStudentBtn.addEventListener('click', () => {
+        // View as Student Button
+        viewAsStudentBtn.addEventListener('click', async () => {
             userRole = 'student';
             showModal("Viewing as Student.");
             updateUIForRole();
+            // Sign out any existing Firebase user when viewing as student
+            if (auth.currentUser) {
+                try {
+                    await signOut(auth);
+                } catch (e) {
+                    console.error("Error signing out:", e);
+                }
+            }
         });
 
-        // Logout Button - NOW USES FIREBASE AUTH signOut
+        // Logout Button - uses Firebase signOut
         logoutBtn.addEventListener('click', async () => {
             try {
                 await signOut(auth); // Sign out the current user from Firebase Auth
-                userRole = 'student'; // Revert to student role on logout
-                showModal("Logged out. Viewing as Student.");
-                updateUIForRole();
-                emailInput.value = ''; // Clear login form
-                passwordInput.value = '';
+                // onAuthStateChanged will handle setting userRole back to 'student'
+                showModal("Logged out successfully.");
             } catch (error) {
                 console.error("Firebase Logout Error:", error);
                 showModal("Error during logout: " + error.message);
             }
         });
 
-        // --- File Upload Form Submission (Admin Only) ---
-        fileUploadForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const file = fileInput.files[0];
-            if (!file) {
-                showModal("Please select a file to upload.");
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('file', file); // Append the selected file to FormData
-
-            // IMPORTANT: Replace with the actual URL of your Flask backend's upload endpoint
-            const backendUrl = 'http://127.0.0.1:5000/upload-results'; // Default Flask URL
-
-            try {
-                showModal("Uploading file... Please wait.");
-                const response = await fetch(backendUrl, {
-                    method: 'POST',
-                    body: formData // Send the FormData object
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    showModal(result.message);
-                    fileInput.value = ''; // Clear the file input
-                } else {
-                    showModal(`Upload failed: ${result.error || 'Unknown error'}`);
-                    console.error("Backend error:", result);
-                }
-            } catch (error) {
-                console.error("Network or fetch error:", error);
-                showModal("Failed to connect to the backend server. Make sure it's running at " + backendUrl);
-            }
+        // Event listener for the new "Show Results" button
+        showResultsBtn.addEventListener('click', () => {
+            displayResults(currentResultsCache); // Trigger display with current filters
         });
 
         let currentResultsCache = []; // Cache for results fetched by onSnapshot
-
-        // Event listeners for search/filter inputs
-        searchIdInput.addEventListener('input', () => displayResults(currentResultsCache)); // Use cached results
-        searchExamTypeInput.addEventListener('change', () => displayResults(currentResultsCache));
-        searchYearInput.addEventListener('input', () => displayResults(currentResultsCache));
 
         // Initialize Firebase when the window loads
         window.onload = initializeFirebase;
